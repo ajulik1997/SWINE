@@ -60,6 +60,9 @@ This README was written and designed to be opened
 02  Script checks whether McStas is installed in
     the default path C:\mcstas-##
     PLEASE MAKE SURE MCSTAS 2.4+ IS INSTALLED
+	
+	You may experience strange behaviour if you
+	have more than one copy of McStas installed
 
 03  You will be asked whether to load a previously
     generated interactive plot, or to run a
@@ -231,6 +234,8 @@ in the default directory" error:
     or higher and in the C:\mcstas-## directory
 - Please make sure you have read access to this
     directory
+- Please make sure you only have one version of
+	McStas installed
 
 If you are seeing the "The selected instrument 
 file does not use these parameters" error:
@@ -279,6 +284,9 @@ If you are seeing an empty figure:
     a single McStas simulation with the parameters
     you specified and see if it completes
     successfully
+- this may occur if you have more than version of
+	McStas installed, try removing or temporarily
+	renaming other McStas versions
 - if you can't find a solution, please contact me
 
 If you get a runtime error or the application ends
