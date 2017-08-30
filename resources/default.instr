@@ -1,0 +1,184 @@
+/********************************** Overview ************************************
+*
+*	A default instrument for SWINE based on OffSpec
+*
+*	Written by Alexander Liptak (Summer Student 2017)
+*	Date: August 2017
+*	E-Mail: Alexander.Liptak.2015@live.rhul.ac.uk
+*	Phone: +44 7901 595107
+*
+*
+******************************* Instrument definition ******************************/
+
+DEFINE INSTRUMENT ISIS_OffSpec(
+    slit1_pos = 8.58,	//position of slit 1; minimum: 8.58
+    slit2_pos = 13.63,	//position of slit 2; minimum: 8.58
+	sample_pos = 14.03,	//position of sample; minimum: 8.58
+    slit1_width = 0.0012,	//width of slit 1
+    slit2_width = 0.0003	//width of slit 2
+)
+
+/******************************* Declare variables ********************************/
+
+DECLARE
+%{
+%}
+
+/******************************* Initialize variables ********************************/
+
+INITIALIZE
+%{
+%}
+
+/********************************* Begin trace ***********************************/
+
+TRACE
+
+COMPONENT Origin = Arm()
+  AT (0,0,0) ABSOLUTE
+  ROTATED (2.3, 0, 0) ABSOLUTE
+
+/******************* Neutron source modelled by an ISIS moderator *******************/
+
+COMPONENT isis_source = ISIS_moderator(
+    Face = "hydrogen",
+    Lmin = 0.5, 
+    Lmax = 15.0,
+    dist = 3.7,
+    focus_xw = 0.03,
+    focus_yh = 0.03,
+    xwidth = 0.083,
+    yheight = 0.033,
+    CAngle = 0.0,
+    SAC = 1,
+    verbose = 1)
+  AT (0.0, 0.0, 0.00001) RELATIVE Origin
+
+/********************** Assign random polarisation to neutrons **********************/
+
+COMPONENT set_pol = Set_pol(
+    randomOn=1)
+  AT (0, 0, 0.00002) RELATIVE Origin
+
+/****************************** Initial neutron guide ******************************/
+
+COMPONENT guide1 = Guide(
+    w1 = 0.03,
+    h1 = 0.03,
+    w2 = 0.03,
+    h2 = 0.03,
+    l = 0.3,
+    m = 3)
+  AT (0.0, 0.0, 3.7) RELATIVE Origin
+
+/*************** Group of curved guides to form a multi-channel bender ***************/
+
+COMPONENT guide_curved_1 = Guide_curved(
+    w1=0.006,
+    h1=0.03,
+    l=6,
+    m=3,
+    curvature=229.183)
+  AT (-0.012, 0, 4) RELATIVE Origin
+  GROUP bendercomposite
+
+COMPONENT guide_curved_2 = COPY(guide_curved_1)
+  AT (-0.006, 0, 4) RELATIVE Origin
+  GROUP bendercomposite
+
+COMPONENT guide_curved_3 = COPY(guide_curved_1)
+  AT (0, 0, 4) RELATIVE Origin
+  GROUP bendercomposite
+
+COMPONENT guide_curved_4 = COPY(guide_curved_1)
+  AT (0.006, 0, 4) RELATIVE Origin
+  GROUP bendercomposite
+
+COMPONENT guide_curved_5 = COPY(guide_curved_1)
+  AT (0.012, 0, 4) RELATIVE Origin
+  GROUP bendercomposite
+
+/*************************** Post-bender rotated arm ***************************/
+
+COMPONENT bender_arm = Arm()
+  AT (0.07855, 0.0, 10.0) RELATIVE Origin
+  ROTATED (0.0, 1.5, 0.0) RELATIVE Origin
+
+/************************** Post-bender neutron guide **************************/
+
+COMPONENT guide2 = Guide(
+    w1 = 0.03,
+    h1 = 0.03,
+    w2 = 0.03,
+    h2 = 0.03,
+    l = 1.4,
+    m = 3)
+  AT (0.0, 0.0, 0.00001) RELATIVE bender_arm
+
+/***************************** Guide to coarse jaw ****************************/
+
+COMPONENT guide3 = Guide(
+    w1 = 0.03,
+    h1 = 0.03,
+    w2 = 0.03,
+    h2 = 0.03,
+    l = 5.39,
+    m = 3)
+  AT (0.0, 0.0, 2.29) RELATIVE bender_arm
+
+/******************************* Coarse jaw slit ******************************/
+
+COMPONENT coarse_jaw = Slit(
+     xwidth = 0.03,
+     yheight = 0.03)
+  AT (0.0, 0.0, 7.8) RELATIVE bender_arm
+
+/********************************** First slit *********************************/
+
+COMPONENT slit1 = Slit(
+    xwidth = 0.03,
+    yheight = slit1_width)
+  AT (0.0, 0.0, slit1_pos) RELATIVE bender_arm
+
+/********************************* Second slit ********************************/
+
+COMPONENT slit2 = Slit(
+    xwidth = 0.03,
+    yheight = slit2_width)
+  AT (0.0, 0.0, slit2_pos) RELATIVE bender_arm
+
+/**************************** Sample arm and monitors**************************/
+
+COMPONENT sample = Arm()
+  AT (0.0, 0, sample_pos) RELATIVE bender_arm
+
+COMPONENT sample_psd = PSD_monitor(
+    nx = 500,
+    ny = 500,
+    filename = "sample_psd.dat",
+    xmin = -0.02,
+    xmax = 0.02,
+    ymin = -0.0005,
+    ymax = 0.0005)
+  AT (0, 0, 0.00001) RELATIVE sample
+
+/****************************** Post-trace actions *****************************/
+
+FINALLY
+%{
+%}
+
+END
+
+
+
+
+
+
+
+
+
+
+
+
+
