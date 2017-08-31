@@ -105,13 +105,18 @@ print(Fore.GREEN + "Using version: " + mcrun.split('\\')[1])
 
 print("==================================================")
 while True:
-	print(Fore.MAGENTA + "Would like to load a previous plot (L) or run a simulation (S)? [L/S] ", end='')
+	print(Fore.MAGENTA + "Would like to run a simulation (S), simulate with debug mode (D), or load a previous plot (L)? [S/D/L] ", end='')
 	load_or_sim = str(input()).upper()
-	if load_or_sim == 'L' or load_or_sim == 'S':
+	if load_or_sim == 'L' or load_or_sim == 'S' or load_or_sim == 'D':
 		if load_or_sim == 'L':
 			unpickle = True
+			debug = False
 		if load_or_sim == 'S':
 			unpickle = False
+			debug = False
+		if load_or_sim == 'D':
+			unpickle = False
+			debug = True
 		break
 	else: 
 		print(Fore.YELLOW + "That is not a recongnised option!")
@@ -133,6 +138,15 @@ if unpickle == True:
 	plt.show()
 	print("Exitting...")
 	sys.exit()
+
+############################################################
+# Opens file for debugging, all external output will be
+#	piped here
+############################################################
+
+if debug == True:
+	debugfile = open('debug.log', 'a')
+	debugfile.write("==================================================\n")
 
 ############################################################
 # Ask user whether to use the default OffSpec-based .instr
@@ -239,7 +253,10 @@ print("Compiling instrument file into C...")
 INSTRtoC = mcstas, '-I', ' -I '.join(mclib), '-t', os.path.split(instr)[1]
 try:
 	os.chdir(os.path.split(instr)[0])
-	check_call(' '.join(INSTRtoC), creationflags=CREATE_NEW_CONSOLE)
+	if debug == False:
+		check_call(' '.join(INSTRtoC), creationflags=CREATE_NEW_CONSOLE)
+	if debug == True:
+		check_call(' '.join(INSTRtoC), stdout=debugfile, stderr=debugfile)
 	os.chdir(cwd)
 except:
 	print(Fore.RED + "An unknown error has occured while compiling to C...")
@@ -268,7 +285,10 @@ except:
 	sys.exit()
 	
 try:
-	check_call('gcc_temp.bat', creationflags=CREATE_NEW_CONSOLE)
+	if debug == False:
+		check_call('gcc_temp.bat', creationflags=CREATE_NEW_CONSOLE)
+	if debug == True:
+		check_call('gcc_temp.bat', stdout=debugfile, stderr=debugfile)
 except:
 	print(Fore.RED + "An unknown error has occured while compiling to binary...")
 	print(Fore.RED + "Exitting...")
@@ -490,7 +510,10 @@ while calls1_done < len(calls1):
 			'| PU:',format(float(debug1[calls1_done][2]), '03.2f'),
 			'| Res:',format(float(debug1[calls1_done][3]), '03.2f'), '|')
 			
-			sim = Popen(calls1[calls1_done], creationflags=CREATE_NEW_CONSOLE)
+			if debug == False:
+				sim = Popen(calls1[calls1_done], creationflags=CREATE_NEW_CONSOLE)
+			if debug == True:
+				sim = Popen(calls1[calls1_done], stdout=debugfile, stderr=debugfile)
 			running_calls.append(sim)
 			calls1_done = calls1_done + 1
 			
@@ -519,7 +542,10 @@ while calls2_done < len(calls2):
 			'| S1W:',format(debug2[calls2_done][1], '03.2f'),
 			'| S2W:',format(debug2[calls2_done][2], '03.2f'), '|')
 			
-			sim = Popen(calls2[calls2_done], creationflags=CREATE_NEW_CONSOLE)
+			if debug == False:
+				sim = Popen(calls2[calls2_done], creationflags=CREATE_NEW_CONSOLE)
+			if debug == True:
+				sim = Popen(calls2[calls2_done], stdout=debugfile, stderr=debugfile)
 			running_calls.append(sim)
 			calls2_done = calls2_done + 1
 			
@@ -541,6 +567,7 @@ while calls2_done < len(calls2):
 
 print("Collecting data...")
 os.chdir(swinedir)
+time.sleep(1)
 for	folder in os.listdir():
 	dim1 = str(folder).split('][')[0][2:]
 	dim2 = str(folder).split('][')[1][:-1]
