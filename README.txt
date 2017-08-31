@@ -45,6 +45,7 @@ This README was written and designed to be opened
     for faster entry
 - ANSI support for coloured output
 - Does not require Python to be installed to run
+- Debug mode for troublehsooting any issues
 
 ##################################################
 
@@ -70,7 +71,12 @@ This README was written and designed to be opened
     
     Press "L" to load a plot, select this option
     only if you have a ".swine" file to use,
-    otherwise press "S"
+    otherwise press "S".
+	
+	Alernativaly, if you would like to use
+	debugging mode, press "D". This will pipe all
+	the output of external calls to a file that
+	you can review later.
 
 04  You will be asked whether you want to use the
     default instrument or use your own
