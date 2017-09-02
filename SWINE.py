@@ -5,26 +5,23 @@
 #	E-Mail: Alexander.Liptak.2015@live.rhul.ac.uk
 #	Phone: +44 7901 595107
 #
-#	Designed to be run on Python 3
-#	and tested with McStas 2.4
-#
-#	IT IS RECOMMENDED TO RUN THIS SCRIPT USING SHELL
+#	Tested with McStas 2.4
 #
 ############################################################
 
 import os
 import sys
-import multiprocessing
+from multiprocessing import cpu_count
 import numpy as np
 from sympy import *
 import matplotlib.pyplot as plt
 from subprocess import Popen, CREATE_NEW_CONSOLE, check_call
 from datetime import datetime
-import time
+from time import sleep
 from glob import glob
 from colorama import init, Fore
-import shutil
-import pickle
+from shutil import rmtree
+from pickle import dump, load
 
 ############################################################
 # Introdction
@@ -69,7 +66,7 @@ if sys.version_info[0] < 3:
 	print(Fore.RED + "This script only works on Python 3!")
 	print(Fore.RED + "Exitting...")
 	sys.exit()
-print(Fore.GREEN + "Embedded Python version is compatible")
+print(Fore.GREEN + "Compatible embedded Python "+sys.version.split(" ")[0])
 
 ############################################################
 # Checking the amount of cores system has for running
@@ -77,7 +74,7 @@ print(Fore.GREEN + "Embedded Python version is compatible")
 ############################################################
 
 print("Checking system...")
-cores = multiprocessing.cpu_count()
+cores = cpu_count()
 print(Fore.GREEN + "Found [" + str(cores) + "] cores!")
 
 ############################################################
@@ -89,12 +86,19 @@ try:
 	mcrun = glob('C:\\mcstas*\\bin\\mcrun.bat')[0]
 	mcstas = glob('C:\\mcstas*\\bin\\mcstas.exe')[0]
 	mclib = glob(glob('C:\\mcstas*\\lib')[0]+'\\*')
-	gcc =  glob('C:\\mcstas-*\\miniconda*\\Library\\mingw-w64\\bin\\')[0]
+	gcc = glob('C:\\mcstas-*\\miniconda*\\Library\\mingw-w64\\bin\\')[0]
+	pydir = glob('C:\\mcstas-*\\miniconda*\\')[0]
 except:
 	print("McStas is not installed in the default directory!")
 	print(Fore.RED + "Exitting...")
 	sys.exit()
 print(Fore.GREEN + "Using version: " + mcrun.split('\\')[1])
+
+############################################################
+# Set temporary environment variables for McStas and GCC
+############################################################
+
+os.environ['PATH']=gcc+';'+pydir
 
 ############################################################
 # Ask user whether to retrieve interactive plot or run sim
@@ -132,9 +136,9 @@ if unpickle == True:
 	print(Fore.MAGENTA + "Drag and drop your .swine file here: ", end='')
 	pickledplot = input()
 	print("Loading plot...")
-	fig = pickle.load(open(pickledplot, 'rb'))
-	mng = plt.get_current_fig_manager()
-	mng.window.state('zoomed')
+	fig = load(open(pickledplot, 'rb'))
+	figManager = plt.get_current_fig_manager()
+	figManager.window.showMaximized()
 	plt.show()
 	print("Exitting...")
 	sys.exit()
@@ -272,29 +276,15 @@ print("Compiling C file into binary...")
 CtoEXE = 'gcc', '-o', os.path.splitext(instr)[0]+'.exe', os.path.splitext(instr)[0]+'.c', '-g', '-O2','-lm'
 
 try:
-	CtoEXEbatch = open('gcc_temp.bat', 'w')
-	
-	CtoEXEbatch.write("setlocal\n")
-	CtoEXEbatch.write("set PATH="+gcc+"\n")
-	CtoEXEbatch.write(' '.join(CtoEXE))
-	
-	CtoEXEbatch.close()
-except:
-	print(Fore.RED + "You do not appear to have write permission in this folder!")
-	print(Fore.RED + "Exitting...")
-	sys.exit()
-	
-try:
 	if debug == False:
-		check_call('gcc_temp.bat', creationflags=CREATE_NEW_CONSOLE)
+		check_call(' '.join(CtoEXE), creationflags=CREATE_NEW_CONSOLE)
 	if debug == True:
-		check_call('gcc_temp.bat', stdout=debugfile, stderr=debugfile)
+		check_call(' '.join(CtoEXE), stdout=debugfile, stderr=debugfile)
 except:
 	print(Fore.RED + "An unknown error has occured while compiling to binary...")
 	print(Fore.RED + "Exitting...")
 	sys.exit()
 
-os.remove('gcc_temp.bat')
 print(Fore.GREEN + "Compiled to binary successfully!")
 
 ############################################################
@@ -522,7 +512,7 @@ while calls1_done < len(calls1):
 	for call in running_calls:
 		sim.wait()
 
-	time.sleep(cores)
+	sleep(cores)
 
 ############################################################
 # Same thing as above but for second set of simulations
@@ -554,7 +544,7 @@ while calls2_done < len(calls2):
 	for call in running_calls:
 		sim.wait()
 
-	time.sleep(cores)
+	sleep(cores)
 
 ############################################################
 # Reads the specified McRun output file from every subfolder
@@ -567,7 +557,7 @@ while calls2_done < len(calls2):
 
 print("Collecting data...")
 os.chdir(swinedir)
-time.sleep(1)
+sleep(1)
 for	folder in os.listdir():
 	dim1 = str(folder).split('][')[0][2:]
 	dim2 = str(folder).split('][')[1][:-1]
@@ -589,7 +579,7 @@ for	folder in os.listdir():
 
 print("Cleaning up...")
 os.chdir(cwd)
-shutil.rmtree(swinedir)
+rmtree(swinedir)
 os.remove(os.path.basename(instr))
 
 ############################################################
@@ -632,23 +622,12 @@ plt.ylabel('Intensity')
 ############################################################
 # The window needs to be maximised as the default view
 #	makes reading the plots impossible.
-# Almost all the time, pyplot will use the qt4agg / qt5agg
-#	backend, but just in case another backend needs to be
-#	used, maximise commands are included for three most
-#	used backends
 ############################################################
 
-if (str(plt.get_backend()).lower() == 'qt4agg'
- or str(plt.get_backend()).lower() == 'qt5agg'):
+try:
 	figManager = plt.get_current_fig_manager()
 	figManager.window.showMaximized()
-elif str(plt.get_backend()).lower() == 'tkagg':
-	mng = plt.get_current_fig_manager()
-	mng.window.state('zoomed')
-elif str(plt.get_backend()).lower() == 'wxagg':
-	mng = plt.get_current_fig_manager()
-	mng.frame.Maximize(True)
-else:
+except:
 	print(Fore.YELLOW + "Error maximising window, please maximise windows manually!")
 
 ############################################################
@@ -658,7 +637,7 @@ else:
 ############################################################
 
 print("Saving figure...")
-pickle.dump(fig, open(swinedir+'.swine', 'wb'))
+dump(fig, open(swinedir+'.swine', 'wb'))
 
 print("Opening plot...")
 plt.show()
